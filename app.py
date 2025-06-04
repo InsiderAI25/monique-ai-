@@ -1,29 +1,25 @@
-
-from flask import Flask, request, jsonify
-from monique_core import monique
+from flask import Flask
+import smtplib
+from email.message import EmailMessage
+import os
 
 app = Flask(__name__)
 
-@app.route('/')
-def index():
-    return jsonify(monique.status())
+@app.route("/")
+def home():
+    return "Monique Email Service is active."
 
-@app.route('/log-deal', methods=['POST'])
-def log_deal():
-    data = request.json
-    monique.log_deal(data.get('deal_name', 'Unnamed Deal'))
-    return jsonify(monique.status())
+@app.route("/send")
+def send_email():
+    msg = EmailMessage()
+    msg.set_content("✅ Monique is live and sending this test email.")
+    msg['Subject'] = "Test Email from Monique"
+    msg['From'] = os.environ.get("EMAIL_USER")
+    msg['To'] = os.environ.get("EMAIL_TO")
 
-@app.route('/confirm-agent', methods=['POST'])
-def confirm_agent():
-    data = request.json
-    monique.confirm_agent_ready(data.get('agent_name', 'Unknown'))
-    return jsonify(monique.status())
-
-@app.route('/attempt-transition')
-def attempt_transition():
-    return jsonify({"transition_result": monique.attempt_transition()})
-if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    server = smtplib.SMTP("smtp.gmail.com", 587)
+    server.starttls()
+    server.login(os.environ.get("EMAIL_USER"), os.environ.get("EMAIL_PASS"))
+    server.send_message(msg)
+    server.quit()
+    return "Email sent successfully!"
